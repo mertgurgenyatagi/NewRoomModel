@@ -1,8 +1,6 @@
 # NewRoomModel
 
-A 3D model of a small studio room, built in Blender 5.2 and driven by Claude Code through the [blender-mcp](https://github.com/ahujasid/blender-mcp) server.
-
-The reference is a compact studio: a single bed, a white desk with a wire chair, a black-framed shelving unit, a kitchenette with a sink, gray tile flooring and olive curtains.
+A 3D model of a room, built in Blender 5.2 and driven by Claude Code through the [blender-mcp](https://github.com/ahujasid/blender-mcp) server.
 
 ## Setup
 
