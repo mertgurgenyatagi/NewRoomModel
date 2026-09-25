@@ -2,6 +2,7 @@ extends Node3D
 ## Builds collision for the imported room, replaces the flat glTF colours with world-position shaders
 ## (plaster, striped door, speckled worktop, facades, floor tiles) and wires up the electric lights (toggle with L).
 
+const GI_DATA := "res://lighting/voxel_gi.res"
 const NO_COLLISION_PREFIXES := ["Far_", "Opp_", "Street_", "Ground_", "Window_Glass", "Blind_", "D_Tree", "D_Lamp", "D_Car", "D_Curtain"]
 
 # Facade look per glTF material: wall colour, trim colour, window pitch (m), window size (m).
@@ -29,8 +30,11 @@ func _ready() -> void:
 		if not _skip_collision(mesh_node.name):
 			mesh_node.create_trimesh_collision()
 	lights.visible = false
-	# Afternoon sun about 40 degrees up, coming in from the window side (the window faces west-southwest, toward -Z).
-	$Sun.look_at_from_position(Vector3(2.0, 17.0, -20.0), Vector3.ZERO)
+	# Late-afternoon sun about 33 degrees up, coming in from the window side (the window faces west-southwest, toward -Z).
+	$Sun.look_at_from_position(Vector3(2.0, 13.0, -20.0), Vector3.ZERO)
+	# Baked indirect light, produced by tools/bake_gi.gd. The room still looks fine without it.
+	if ResourceLoader.exists(GI_DATA):
+		$VoxelGI.data = load(GI_DATA)
 
 
 func _shader_mat(path: String, params: Dictionary) -> ShaderMaterial:
@@ -44,11 +48,27 @@ func _shader_mat(path: String, params: Dictionary) -> ShaderMaterial:
 func _build_shared_materials() -> void:
 	var plaster := "res://shaders/plaster.gdshader"
 	_shared["Wall"] = _shader_mat(plaster, {"base_color": Color("a7a3a2")})
-	_shared["Ceiling"] = _shader_mat(plaster, {"base_color": Color("c7c3bd"), "grain_contrast": 0.12, "bump_strength": 0.002})
+	_shared["Ceiling"] = _shader_mat(plaster, {"base_color": Color("c7c3bd"), "grain_contrast": 0.12, "bump_strength": 0.0007})
 	_shared["Soffit"] = _shared["Ceiling"]
 	_shared["Door"] = _shader_mat("res://shaders/door.gdshader", {})
 	_shared["CounterTop"] = _shader_mat("res://shaders/counter_top.gdshader", {})
 	_shared["Floor"] = _shader_mat("res://floor_tiles.gdshader", {})
+
+	var satin := "res://shaders/satin.gdshader"
+	# Painted / enamelled / lacquered surfaces (colour, roughness, smudge variation, clearcoat)
+	_shared["CounterWhite"] = _shader_mat(satin, {"albedo": Color("dcdcd6"), "roughness": 0.36, "rough_var": 0.1, "clearcoat": 0.35})
+	_shared["CounterFront"] = _shader_mat(satin, {"albedo": Color("e3e2dc"), "roughness": 0.32, "rough_var": 0.1, "clearcoat": 0.45})
+	_shared["Radiator"] = _shader_mat(satin, {"albedo": Color("ecebe6"), "roughness": 0.3, "rough_var": 0.08, "clearcoat": 0.5})
+	_shared["Skirting"] = _shader_mat(satin, {"albedo": Color("d8d4cd"), "roughness": 0.5, "rough_var": 0.12})
+	_shared["SocketPlate"] = _shader_mat(satin, {"albedo": Color("efeee9"), "roughness": 0.35, "rough_var": 0.05, "clearcoat": 0.3})
+	_shared["BlackPlastic"] = _shader_mat(satin, {"albedo": Color("1a1a1a"), "roughness": 0.42, "rough_var": 0.1})
+	_shared["DownlightRim"] = _shader_mat(satin, {"albedo": Color("e8e8e2"), "roughness": 0.4, "rough_var": 0.05})
+	# Metals
+	_shared["Steel"] = _shader_mat(satin, {"albedo": Color("c4c7ca"), "roughness": 0.3, "rough_var": 0.1, "metallic": 0.85, "brushed": 1.0})
+	_shared["DarkSteel"] = _shader_mat(satin, {"albedo": Color("8b8f94"), "roughness": 0.34, "rough_var": 0.1, "metallic": 0.8, "brushed": 1.0})
+	_shared["Frame"] = _shader_mat(satin, {"albedo": Color("26272a"), "roughness": 0.38, "rough_var": 0.08, "metallic": 0.55})
+	# Fabric
+	_shared["Curtain"] = _shader_mat(satin, {"albedo": Color("4a3225"), "roughness": 0.95, "rough_var": 0.05, "sheen": 0.22, "weave": 0.3, "bump_strength": 0.0006, "specular": 0.15})
 
 
 func _apply_materials(mesh_node: MeshInstance3D) -> void:

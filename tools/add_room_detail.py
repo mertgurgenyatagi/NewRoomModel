@@ -88,8 +88,8 @@ def sphere(name, cx, cy, cz, r, m, coll=EXT):
 
 
 SKIRT = mat("Skirting", "#d8d4cd", 0.6)
-STEEL = mat("Steel", "#b9bdc2", 0.3, 1.0)
-DARKSTEEL = mat("DarkSteel", "#5b5f64", 0.35, 1.0)
+STEEL = mat("Steel", "#b4b7ba", 0.38, 0.35)  # satin, only partly metallic so it does not just mirror the sky
+DARKSTEEL = mat("DarkSteel", "#7d8186", 0.4, 0.3)
 WHITE = mat("Radiator", "#ecebe6", 0.4)
 PLATE = mat("SocketPlate", "#efeee9", 0.5)
 CURTAIN = mat("Curtain", "#5a3d2b", 0.95)
@@ -207,6 +207,24 @@ for i, (x, y, hexc) in enumerate(CARS):
             w = cyl(f"CarWheel{i}_{wx}_{wy}", 0, 0, 0.0, 0.25, 0.3, BLACK, EXT, seg=12)
             w.rotation_euler = (1.5708, 0, 0)  # local +Z maps to -Y, so offset by half the width
             w.location = (x + wx, y + wy + 0.125, -12.05 + 0.3)
+
+
+# ---- bevel every small fixture and the counter so edges catch light -----------
+def bevel(o, width, segments=2):
+    m = o.modifiers.new("Bevel", 'BEVEL')
+    m.width = width
+    m.segments = segments
+    m.limit_method = 'ANGLE'
+
+
+for o in bpy.data.objects:
+    if o.name.startswith("D_") and o.type == 'MESH' and o.parent is None and o.name.startswith(
+            ("D_Fridge", "D_Cab_", "D_Counter_", "D_Sink", "D_Tap", "D_Rad", "D_Door_", "D_Sock", "D_Switch", "D_Smoke", "D_Skirt", "D_WinFrame", "D_Curtain_Rod")):
+        bevel(o, 0.004 if o.name.startswith(("D_Sock", "D_Switch", "D_Tap", "D_Door_Lock", "D_Smoke")) else 0.006)
+for name, w in (("Counter_Body", 0.012), ("Counter_Top", 0.006)):
+    o = bpy.data.objects[name]
+    if not any(m.type == 'BEVEL' for m in o.modifiers):
+        bevel(o, w, 3)
 
 bpy.ops.wm.save_mainfile()
 print("DETAIL_DONE", len([o for o in bpy.data.objects if o.name.startswith("D_")]))

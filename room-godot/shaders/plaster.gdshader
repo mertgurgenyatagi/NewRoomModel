@@ -3,7 +3,7 @@ shader_type spatial;
 
 uniform vec3 base_color : source_color = vec3(0.65, 0.64, 0.63);
 uniform float grain_contrast = 0.22;
-uniform float bump_strength = 0.004; // bump height in metres
+uniform float bump_strength = 0.0011; // bump height in metres
 uniform float roughness_base = 0.9;
 
 varying vec3 wpos;
