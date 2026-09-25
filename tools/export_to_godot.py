@@ -14,12 +14,18 @@ M={
  "Fac_Orange":("#c9622a",0.85,1),"Fac_Pink":("#c98f78",0.85,1),"Fac_White":("#e8e4dc",0.85,1),
 }
 for m in bpy.data.materials:
-    if m.name not in M: continue
-    hexc,rough,alpha=M[m.name]
-    m.use_nodes=True
+    if not m.use_nodes: continue
+    old=next((n for n in m.node_tree.nodes if n.type=="BSDF_PRINCIPLED"),None)
+    if m.name in M:
+        hexc,rough,alpha=M[m.name]; color=lin(hexc); metal=0.0
+    elif old is not None:  # materials added by add_room_detail.py: keep their plain Principled values
+        color=tuple(old.inputs["Base Color"].default_value); rough=old.inputs["Roughness"].default_value
+        alpha=1.0; metal=old.inputs["Metallic"].default_value
+    else: continue
     nt=m.node_tree; nt.nodes.clear()
     out=nt.nodes.new("ShaderNodeOutputMaterial"); b=nt.nodes.new("ShaderNodeBsdfPrincipled")
-    b.inputs["Base Color"].default_value=lin(hexc); b.inputs["Roughness"].default_value=rough
+    b.inputs["Base Color"].default_value=color; b.inputs["Roughness"].default_value=rough
+    b.inputs["Metallic"].default_value=metal
     b.inputs["Alpha"].default_value=alpha
     nt.links.new(b.outputs[0],out.inputs[0])
     if alpha<1: m.blend_method='BLEND' if hasattr(m,'blend_method') else None

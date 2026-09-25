@@ -17,13 +17,15 @@ sky_material = SubResource("sky_mat")
 background_mode = 2
 sky = SubResource("sky")
 ambient_light_source = 2
-ambient_light_color = Color(0.93, 0.93, 0.92, 1)
-ambient_light_energy = 0.75
+ambient_light_color = Color(0.93, 0.92, 0.9, 1)
+ambient_light_energy = 0.7
 tonemap_mode = 4
 tonemap_exposure = 1.0
 ssao_enabled = true
-ssao_radius = 0.6
-ssao_intensity = 1.5
+ssao_radius = 0.5
+ssao_intensity = 1.6
+ssil_enabled = true
+ssil_intensity = 1.2
 glow_enabled = true
 
 [sub_resource type="CapsuleShape3D" id="capsule"]
