@@ -7,20 +7,24 @@ A 3D model of my ~13 m² studio apartment, built in Blender 5.2 and driven by Cl
 | Area | State |
 |---|---|
 | Style direction | Done, see [STYLE_ANALYSIS.md](STYLE_ANALYSIS.md) |
-| Room dimensions | Rough. The plan sketch in [room_plan.png](room_plan.png) is now the authority. [ROOM_DIMENSIONS.md](ROOM_DIMENSIONS.md) is the older photo-derived estimate |
-| Blender shell (walls, window, counter, door) | Built in the live Blender session, **not yet saved as a `.blend` file** |
-| Furniture, lighting, materials, decor | Not started |
+| Room dimensions | Built at **0.75 m per floor tile**, from the tile-unit plan in [room_plan.png](room_plan.png). The tile size is an estimate, not yet measured |
+| Blender shell (walls, window, counter, door) | Done, saved in [room.blend](room.blend) |
+| Materials | Done for the existing room, matched to the photos in `actual_room/` |
+| Lighting | Done: early-sunset sun with the electric lights off. The electric lights are kept in a hidden collection |
+| Exterior | Done: simple urban street outside the window |
+| Furniture, decor, the new look | **Not started. This is the next phase ("the dream room")** |
 
 ## Repository contents
 
 | Path | What it is |
 |---|---|
 | `PROJECT.md` | This file |
+| `room.blend` | The Blender model. `room.blend1` is Blender's automatic backup and is git-ignored |
 | `STYLE_ANALYSIS.md` | Style analysis of the 12 mood-board images: palette, materials, light, layout moves, design rules |
-| `ROOM_DIMENSIONS.md` | Room dimensions estimated from photos (superseded where it disagrees with the sketch) |
-| `room_plan.png` | My hand-drawn plan with measured dimensions. Window side at the top |
+| `ROOM_DIMENSIONS.md` | Old photo-derived dimension estimate. Superseded by the plan and the scale below |
+| `room_plan.png` | My hand-drawn plan, labelled in floor-tile units. Window side at the top |
 | `style_refs/` | 12 mood-board images (Pinterest exports), two of which are identical |
-| `actual_room/` | 7 photos of the current room, used to derive dimensions |
+| `actual_room/` | 7 photos of the current room, used for materials, lights and layout |
 
 ## Setup
 
@@ -34,56 +38,65 @@ A 3D model of my ~13 m² studio apartment, built in Blender 5.2 and driven by Cl
    ```
 3. In Blender, enable **Interface: MCP for Blender**, press `N` in the 3D viewport, open the **MCP for Blender** tab and click **Start MCP Server**.
 
-The community server runs LLM-generated Python inside Blender with no guards, so save the `.blend` file often.
+The community server runs LLM-generated Python inside Blender with no guards, so save `room.blend` often.
 
-Verified working in this project: Blender 5.2.2 LTS, add-on 1.7, protocol 11.
+Verified working in this project: Blender 5.2.2 LTS, add-on 1.7, protocol 11, EEVEE renderer, AgX view transform.
 
 ## The room
 
-### Authoritative plan (from `room_plan.png`)
+### Scale
+
+`room_plan.png` is labelled in floor-tile units. One unit is assumed to be **0.75 m** (75 x 75 cm tiles). Reasons: it gives about 13 m² in total, the counter comes out at about 1.43 x 0.83 m (I had asked for about 1.35 m wide), and in the photos a tile looks about as wide as the single bed. **Confirm by measuring one tile.** If it is wrong, everything in the model needs rescaling.
+
+### Plan (from `room_plan.png`)
 
 Viewed from above, window at the top:
 
 ```
-        2.6 m (window side)
+        4.15 units (window wall)
    +------------------------+
    |                        |
-   |                        |   right wall 2.6 m
+   |                        |   right wall 3.5 units
    | left wall              |
-   | 2.6 m                  |
+   | 4.6 + 2.4 units        |
    |                +-------+
-   |                | 1 x 0.8 counter
+   |                | counter 1.9 x 1.1
    |         +------+-------+
-   |         |  0.5 m step (1.5 m from right wall in total)
+   |         |  0.5 unit step (2.4 units from right wall in total)
    | hall    |
-   | 1.1 m   |
-   | 1.9 m   |
+   | 1.75 u  |
+   | 2.4 u   |
    |         |
 ```
 
-- Window wall: 2.6 m wide, full-width floor-to-ceiling glazing.
-- Left wall: 2.6 m + 1.9 m = 4.5 m, running the full length.
-- Right wall: 2.6 m.
-- At the bottom of the main room a wall steps in from the right: 1 m (beside the counter) + 0.5 m = 1.5 m.
-- The hall is therefore 2.6 - 1.5 = 1.1 m wide and runs the remaining 1.9 m down the left side to the entrance.
-- The counter is drawn as a 1 m x 0.8 m rectangle in the corner between the right wall and the step wall.
+| Part | Units | Metres at 0.75 |
+|---|---|---|
+| Window wall width | 4.15 | 3.11 |
+| Main room depth | 4.6 | 3.45 |
+| Hall length | 2.4 | 1.8 |
+| Hall width | 4.15 - 1.9 - 0.5 = 1.75 | 1.31 |
+| Left wall (full length) | 4.6 + 2.4 = 7.0 | 5.25 |
+| Counter | 1.9 x 1.1 | 1.43 x 0.83 |
+| Step return | 1.9 + 0.5 | 1.8 |
 
 ### Assumptions I have not verified
 
+- The tile size of 0.75 m (see Scale).
 - Ceiling height 2.6 m (typical, not measured).
 - Wall thickness 12 cm (only affects the outside; the interior follows the sketch).
-- The entrance door is 0.9 x 2.1 m and sits at the far end of the hall, at the left. The sketch does not show the door.
-- The 1 m x 0.8 m rectangle is the kitchen counter. The photos suggested a deeper-than-usual counter is unlikely (about 0.55 m), so the 0.8 m may be something else.
-- The window glass is about 2.4 m wide with a 15 cm soffit strip above it, from the photos.
+- The entrance door is 0.9 x 2.1 m, at the far end of the hall, against the left wall. The sketch does not show it. The hall is wider than the door, so there is a plain wall pier beside it.
+- The window glass is about 2.9 m wide with a 15 cm soffit strip above it. Glass width and height are guesses.
 - The bathroom is outside the model (ignored on purpose). It is the solid space to the right of the hall.
+- Window faces roughly **west-southwest**, read off a Google Earth bird's-eye view with a heading of 264 degrees. The flat is on the 4th floor, so the room floor is about 12 m above the street.
 
 ### What the photos showed (`actual_room/`)
 
-- Large-format floor tiles, about 60 x 60 cm (this scale fitted the bed at about 1.93 m long and the desk at about 53 cm deep).
-- A panel radiator under the window, a sheer blind plus a heavy curtain, and sockets along the walls.
-- A white mini kitchen unit: a mini fridge and a sink cabinet with a dark speckled worktop.
-- The entrance door is glossy black with light vertical stripes and opens inward against the left wall.
-- The photo-derived width (about 2.55 m) is consistent with the sketch (2.6 m). The photo-derived length (about 4.2 m) is shorter than the sketch's 4.5 m, so trust the sketch.
+- Large-format floor tiles in a light greige with thin grout, semi-gloss.
+- Walls in a fine roughcast plaster, grey-taupe in daylight (`#a7a3a2`). Ceiling and window soffit `#c7c3bd`. The warm colour in the photos comes from the lights.
+- Downlights in the ceiling (two in the main room, one in the hall), warm with only a slight orange-yellow tint.
+- A panel radiator under the window, a sheer vertical blind plus a heavy brown curtain, and sockets along the walls.
+- A white mini kitchen unit: a mini fridge and a sink cabinet with a black speckled worktop and a silver edge strip.
+- The entrance door is glossy black with light vertical stripes, and opens inward against the left wall.
 
 ## Style direction (summary)
 
@@ -103,32 +116,64 @@ Key rules:
 
 Recommended lean: the bright "sunlit botanical" mood for materials and layout, plus the evening-cozy lighting and sage/terracotta accents.
 
-## Blender model
+## Blender model (`room.blend`)
 
-### Current build (the "macro shell")
+Blender axes: +X to the right of the plan, the window wall at the high-Y end, so the plan reads like the sketch when viewed straight from above. Z is up, the floor is at Z = 0, the ceiling at 2.6 m. Room interior spans X 0 to 3.11 m and Y 0 to 5.25 m.
 
-Everything lives in a collection named `Room`. Blender axes: +X to the right of the plan, the window wall at the high-Y end, so the plan reads like the sketch when viewed straight from above.
+### Collections and objects
+
+| Collection | Contents |
+|---|---|
+| `Room` | The shell, the counter, the window blinds, the sun, the cameras |
+| `Lights_Day` | The electric lights: three ceiling downlights and their glowing lenses, two fill lights and an overcast-daylight area light. **Excluded from the view layer** (lights off). Enable it to switch them back on |
+| `Exterior` | The street and buildings outside the window |
+
+Shell objects in `Room`:
 
 | Object(s) | What |
 |---|---|
-| `Floor_Main`, `Floor_Hall` | Grey slabs, no tile lines |
-| `Ceiling_Main`, `Ceiling_Hall` | Hidden in the viewport so the room can be seen from above |
-| `Wall_Left` | Full 4.5 m |
-| `Wall_Right` | 2.6 m |
-| `Wall_Step` | 1.5 m return at the end of the main room |
-| `Wall_HallRight` | 1.1 m hall's right wall, 1.9 m long |
-| `Wall_Window_*`, `Window_Glass`, `Window_Frame_Bottom` | Full-width glazing about 2.4 m wide, piers either side, soffit above |
-| `Wall_Entrance_*`, `Door` | 0.9 x 2.1 m opening at the end of the hall, closed black door slab |
-| `Counter_Body`, `Counter_Top` | Plain 1.0 x 0.8 m box, 0.88 m high, dark top. No sink, tap or fridge detail on purpose |
-| Area light | One area light above the room |
+| `Floor_Main`, `Floor_Hall` | Tile floor |
+| `Ceiling_Main`, `Ceiling_Hall` | Ceilings. Hide them in the viewport to see the room from above |
+| `Wall_Left`, `Wall_Right`, `Wall_Step`, `Wall_HallRight` | The walls: left 5.25 m, right, the step return, and the hall's right wall |
+| `Wall_Window_*`, `Window_Glass`, `Window_Frame_Bottom` | Full-width glazing with piers either side and a soffit above. The glass is clear |
+| `Blind_Slat_*` | Sheer vertical blind slats, opened and bunched at the left pier |
+| `Wall_Entrance_*`, `Door` | 0.9 x 2.1 m opening at the end of the hall, closed striped black door |
+| `Counter_Body`, `Counter_Top` | Plain 1.43 x 0.83 m box, 0.85 m high, floating 6 cm above the floor, black speckled top. No sink, tap, fridge or handles yet |
+| `Sun_Sunset` | The early-sunset sun (about 13 degrees above the horizon) |
 
-This was deliberately kept macro: no faucet, handles, radiator, curtains or trim.
+### Materials (all procedural, based on world position, so they need no UVs)
+
+`Floor` (75 cm tiles), `Wall` (roughcast), `Ceiling`, `Soffit`, `Door`, `Frame`, `Glass`, `CounterWhite`, `CounterTop`, `BlindSheer`, plus the exterior facade materials (`Fac_*`, `Asphalt`, `Sidewalk`).
+
+### Lighting
+
+- **Current state: early sunset, electric lights off.** A warm-orange sun (`Sun_Sunset`, 14 W/m², exposure -0.5) comes from the west-southwest across the street. The sky is a Nishita/multiple-scattering sky with a warm tint. The sun disc itself is hidden.
+- The sun is placed so it clears the roofs of the buildings opposite. A tall skyline across the street would block it.
+- **Electric-light state:** enable the `Lights_Day` collection. The downlights are warm spots with only a slight orange-yellow tint.
+
+### Exterior
+
+The `Exterior` collection is a simple street about 12 m below the floor and about 14.5 m from the window: sidewalks, road, five buildings opposite and a low hazy skyline behind. The facades are shader-painted windows on boxes, styled after the Vatan Caddesi street photos (cream neoclassical, orange ribbon-window block, small beige, white, pink). There are no trees, cars or street lamps yet. The opposite facades are backlit, which is right for a window facing the sunset.
+
+### Cameras
+
+- `Cam_Window`: from the hall side toward the window (the saved active camera).
+- `Cam_Sunset_Room`: from the window corner back into the room.
+- `Camera`: an older general-purpose camera near the window.
+
+### Rendering notes
+
+- Renders with `bpy.ops.render.render(write_still=True)` come out washed out or stale if EEVEE is still compiling shaders. Render twice, and keep the 3D viewport in solid mode while doing it.
+- The viewport is set to solid shading. Switch to rendered mode by hand for a live look.
 
 ### Known issues
 
-- The scene has not been saved to a `.blend` file. The build script lived in the Blender session only.
-- The default camera was deleted and none has been added yet.
-- The counter and door positions are placeholders.
+- The tile size is unmeasured, so every dimension shares that one uncertainty.
+- The counter is a plain box. The real one has a mini fridge, a sink cabinet with two doors and handles, a steel sink and tap, a silver edge strip, and small legs.
+- The current furniture is not modelled, on purpose.
+- Missing photo details: smoke detector, socket plates, door handle and lock, radiator, curtain.
+- The exterior facades read slightly teal because of the blue sky bounce in shade.
+- Downlight positions are approximate, placed by eye from the photos.
 
 ## Decisions and history
 
@@ -137,18 +182,28 @@ This was deliberately kept macro: no faucet, handles, radiator, curtains or trim
 3. I then sketched the plan myself and asked for a rebuild from it. The sketch replaced the photo-derived numbers.
 4. First rebuild came out mirrored, because the sketch's "down" was mapped to +Y (which flips a top-down view). Fixed by flipping the model along Y.
 5. The step wall poked 12 cm into the hall. Fixed so it meets the hall wall flush.
+6. Materials and lights were matched to the photos. I answered a round of questions to fix the wall, ceiling and floor colours and the floor sheen.
+7. The counter was widened, and its base briefly extended to the floor, then that was undone.
+8. Sunset lighting and an urban view were added. A first attempt had no sun in the room, because a tall block in the far skyline was cutting off the low sun. The far skyline was lowered.
+9. I relabelled the plan in floor-tile units. I estimated 0.75 m per tile and rebuilt the shell at that scale.
 
-## Next steps
+## Next steps: the dream room
 
-1. Save the model as a `.blend` file (decide where it lives, and whether to commit it).
-2. Tape-measure and confirm: ceiling height, window glass width and height, entrance door position, counter depth and position.
-3. Add a camera and decide on a hero view.
-4. Layout the furniture: bed, open shelf divider, desk at the window, one seat, rug.
-5. Materials and lighting: honey wood, cream, sage and terracotta accents, warm lamps.
-6. Plants and decor last.
+The foundation (shell, materials, lights, view) is done. From here the work is the new design.
+
+1. Measure one floor tile and confirm the 0.75 m scale. Also confirm ceiling height and window size.
+2. Decide the layout: bed, open shelf divider, desk at the window, one seat, rug. Keep a 60 to 70 cm walking path.
+3. Build or source the furniture in the honey wood, cream and green palette. Poly Haven, Sketchfab and Poly Pizza assets are available through the MCP server.
+4. Materials: honey wood, linen, wool, jute, rattan, ceramic, with sage and terracotta accents.
+5. Lighting: keep the sunset state, and add a warm-lamp evening state (many low sources, no single bright ceiling light).
+6. Plants at three levels, and decor last.
+7. Optional: add the counter details, trees and street lamps outside, and save the daylight look as its own scene.
 
 ## Notes for future sessions
 
 - Blender MCP tools are used through Claude Code. Always check `get_addon_status` and `get_scene_info` before writing code.
 - Never rely on shader node names. Look them up by type.
 - The user prefers short, macro-level builds first and corrections in small steps. Do not spend long on photogrammetry again.
+- Ask the user short multiple-choice questions when a material or measurement is uncertain. That worked well for colours and finishes.
+- Save `room.blend` after each set of changes, and call save twice if `is_dirty` still reads true.
+- Do not commit `room.blend1` (Blender's backup file).
