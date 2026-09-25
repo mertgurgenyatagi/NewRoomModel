@@ -18,8 +18,8 @@ func _ready() -> void:
 		if not _skip_collision(mesh_node.name):
 			mesh_node.create_trimesh_collision()
 	lights.visible = false
-	# Same low sunset sun as the Blender scene (Sun_Sunset at Blender (1.3, 30, 10), i.e. Godot (1.3, 10, -30)).
-	$Sun.look_at_from_position(Vector3(1.3, 10.0, -30.0), Vector3.ZERO)
+	# Afternoon sun about 40 degrees up, coming in from the window side (the window faces west-southwest, toward -Z).
+	$Sun.look_at_from_position(Vector3(2.0, 17.0, -20.0), Vector3.ZERO)
 
 
 func _skip_collision(node_name: String) -> bool:
