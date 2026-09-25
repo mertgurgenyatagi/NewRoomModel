@@ -1,6 +1,6 @@
 # NewRoomModel
 
-A 3D model of my ~13 m² studio apartment, built in Blender 5.2 and driven by Claude Code through the [blender-mcp](https://github.com/ahujasid/blender-mcp) server. The goal is to design the room's future look (all current furniture removed, only the mini kitchen stays) before changing anything in real life.
+A 3D model of my ~13 m² studio apartment, built in Blender 5.2 and driven by Claude Code through the [blender-mcp](https://github.com/ahujasid/blender-mcp) server, plus a Godot 4.7 project that lets me walk around it in first person. The goal is to design the room's future look (all current furniture removed, only the mini kitchen stays) before changing anything in real life.
 
 ## Status at a glance
 
@@ -8,11 +8,11 @@ A 3D model of my ~13 m² studio apartment, built in Blender 5.2 and driven by Cl
 |---|---|
 | Style direction | Done, see [STYLE_ANALYSIS.md](STYLE_ANALYSIS.md) |
 | Room dimensions | Built at **0.75 m per floor tile**, from the tile-unit plan in [room_plan.png](room_plan.png). The tile size is an estimate, not yet measured |
-| Blender shell (walls, window, counter, door) | Done, saved in [room.blend](room.blend) |
+| Blender shell (walls, window, counter, door) | Done, saved in [room.blend](room.blend), with photo details added (skirting, window frame, radiator, curtain, door handle, sockets, counter details, street trees, lamps and cars) |
 | Materials | Done for the existing room, matched to the photos in `actual_room/` |
-| Lighting | Done: early-sunset sun with the electric lights off. The electric lights are kept in a hidden collection |
+| Lighting | Blender: early-sunset sun with the electric lights off (the lights are in a hidden collection). Godot: its own natural, dreamy late-afternoon look with baked bounce light |
 | Exterior | Done: simple urban street outside the window |
-| Walkable Godot version | Done: first-person walk-through in `room-godot/`, see the Godot section below |
+| Walkable Godot version | Done: first-person walk-through in `room-godot/` with collision, custom surface shaders, baked GI, haze, bloom and vignette. See the Godot section below |
 | Furniture, decor, the new look | **Not started. This is the next phase ("the dream room")** |
 
 ## Repository contents
@@ -21,6 +21,8 @@ A 3D model of my ~13 m² studio apartment, built in Blender 5.2 and driven by Cl
 |---|---|
 | `PROJECT.md` | This file |
 | `room.blend` | The Blender model. `room.blend1` is Blender's automatic backup and is git-ignored |
+| `room-godot/` | The Godot 4.7 project: the walkable room, shaders, lighting and the Godot MCP addon |
+| `tools/` | Blender scripts: `add_room_detail.py` (adds detail to `room.blend`) and `export_to_godot.py` (exports to glTF for Godot) |
 | `STYLE_ANALYSIS.md` | Style analysis of the 12 mood-board images: palette, materials, light, layout moves, design rules |
 | `ROOM_DIMENSIONS.md` | Old photo-derived dimension estimate. Superseded by the plan and the scale below |
 | `room_plan.png` | My hand-drawn plan, labelled in floor-tile units. Window side at the top |
@@ -170,9 +172,10 @@ The `Exterior` collection is a simple street about 12 m below the floor and abou
 ### Known issues
 
 - The tile size is unmeasured, so every dimension shares that one uncertainty.
-- The counter is a plain box. The real one has a mini fridge, a sink cabinet with two doors and handles, a steel sink and tap, a silver edge strip, and small legs.
+- The counter now has fridge and cabinet doors, handles, a steel sink and tap, an edge strip and legs, but it is still simple geometry. The real one has more detail.
 - The current furniture is not modelled, on purpose.
-- Missing photo details: smoke detector, socket plates, door handle and lock, radiator, curtain.
+- Photo details still approximate: radiator, curtain and door handle shapes and positions were placed by eye.
+- The far skyline outside is plain boxes, and the opposite facades are flat colour with window grids.
 - The exterior facades read slightly teal because of the blue sky bounce in shade.
 - Downlight positions are approximate, placed by eye from the photos.
 
@@ -186,19 +189,24 @@ The `Exterior` collection is a simple street about 12 m below the floor and abou
 6. Materials and lights were matched to the photos. I answered a round of questions to fix the wall, ceiling and floor colours and the floor sheen.
 7. The counter was widened, and its base briefly extended to the floor, then that was undone.
 8. Sunset lighting and an urban view were added. A first attempt had no sun in the room, because a tall block in the far skyline was cutting off the low sun. The far skyline was lowered.
-9. I relabelled the plan in floor-tile units. I estimated 0.75 m per tile and rebuilt the shell at that scale.
+9. I relabelled the plan in floor-tile units. I estimated 0.75 m per tile and rebuilt the shell at that scale. I decided to keep 0.75 m.
+10. I chose the Godot MCP by searching for candidates, picked [mkdevkit/godot-mcp](https://github.com/mkdevkit/godot-mcp), and built the walkable room. The Blender MCP was not needed for the export, because Blender can run headless.
+11. First Godot look was flat and grey. I had flattened every procedural material to a plain colour in the export and had no bounce light. I told the user the causes in this order: lighting, lost materials, then a thin model.
+12. Forced sunset lighting in Godot felt unnatural, so I switched to natural daylight. SDFGI left the interior black twice and was dropped.
+13. I added the model detail, world-position surface shaders (plaster, door, worktop, facades), then a satin shader with real reflections, beveled edges, a reflection probe and baked VoxelGI.
+14. Art direction from the user: natural (not forced sunset), stylish like a beautiful indie game, a subtle "romantic dream" mood, and surfaces that respond to light like real objects. Furniture was deliberately left out for now.
 
 ## Next steps: the dream room
 
-The foundation (shell, materials, lights, view) is done. From here the work is the new design.
+The foundation (shell, materials, lights, view, walkable Godot version) is done. From here the work is the new design.
 
 1. Measure one floor tile and confirm the 0.75 m scale. Also confirm ceiling height and window size.
 2. Decide the layout: bed, open shelf divider, desk at the window, one seat, rug. Keep a 60 to 70 cm walking path.
-3. Build or source the furniture in the honey wood, cream and green palette. Poly Haven, Sketchfab and Poly Pizza assets are available through the MCP server.
-4. Materials: honey wood, linen, wool, jute, rattan, ceramic, with sage and terracotta accents.
-5. Lighting: keep the sunset state, and add a warm-lamp evening state (many low sources, no single bright ceiling light).
+3. Build or source the furniture in the honey wood, cream and green palette. Prefer real modelled assets (Poly Haven, Sketchfab, Poly Pizza) over hand-built boxes, because boxes read as "Blender boxes". Assets that come through glTF need a matching shader entry in `main.gd` if they use procedural materials.
+4. Materials: honey wood, linen, wool, jute, rattan, ceramic, with sage and terracotta accents. Give them real surface response (roughness variation, sheen), not flat colour.
+5. Lighting: keep the Godot dreamy-afternoon look, and add a warm-lamp evening state (many low sources, no single bright ceiling light). Re-bake the GI after every layout change.
 6. Plants at three levels, and decor last.
-7. Optional: add the counter details, trees and street lamps outside, and save the daylight look as its own scene.
+7. Optional: richer street and skyline outside, and a Blender daylight scene to match the Godot look.
 
 ## Walkable version in Godot (`room-godot/`)
 
@@ -223,3 +231,6 @@ Godot 4.7.2 project that lets me walk around the room in first person. Open it w
 - Ask the user short multiple-choice questions when a material or measurement is uncertain. That worked well for colours and finishes.
 - Save `room.blend` after each set of changes, and call save twice if `is_dirty` still reads true.
 - Do not commit `room.blend1` (Blender's backup file).
+- In Godot work, check every visual change with a game screenshot (`get_game_screenshot` saves a PNG to `%APPDATA%\Godot\app_userdata\room-godot\mcp_screenshot_res.png`, which is easier to read than the base64 reply). Wait 10 to 20 seconds after `play_scene` before judging, because shaders, fog and the reflection probe take a moment to settle.
+- After any change to lights or room geometry, re-bake the GI (see the Godot section). The bake data is git-ignored.
+- The user cares most about surface materials and lighting. Prefer effort there over more geometry. Keep the mood subtle, not extreme.
