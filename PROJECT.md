@@ -12,6 +12,7 @@ A 3D model of my ~13 m² studio apartment, built in Blender 5.2 and driven by Cl
 | Materials | Done for the existing room, matched to the photos in `actual_room/` |
 | Lighting | Done: early-sunset sun with the electric lights off. The electric lights are kept in a hidden collection |
 | Exterior | Done: simple urban street outside the window |
+| Walkable Godot version | Done: first-person walk-through in `room-godot/`, see the Godot section below |
 | Furniture, decor, the new look | **Not started. This is the next phase ("the dream room")** |
 
 ## Repository contents
@@ -198,6 +199,18 @@ The foundation (shell, materials, lights, view) is done. From here the work is t
 5. Lighting: keep the sunset state, and add a warm-lamp evening state (many low sources, no single bright ceiling light).
 6. Plants at three levels, and decor last.
 7. Optional: add the counter details, trees and street lamps outside, and save the daylight look as its own scene.
+
+## Walkable version in Godot (`room-godot/`)
+
+Godot 4.7.2 project that lets me walk around the room in first person. Open it with `Godot_v4.7.2-stable_win64.exe --path room-godot --editor`, or run `main.tscn` (it is the main scene).
+
+- **Controls:** WASD walk, Shift sprint, mouse look, Esc frees the mouse (click to recapture), **L** toggles the electric downlights (off by default, like the Blender sunset state).
+- **Files:** `main.tscn` (scene), `main.gd` (builds collision for the room meshes, applies the floor tile shader, sunset sun, light toggle), `player.gd` (walker), `floor_tiles.gdshader` (0.75 m tiles with grout, from world position), `assets/room.glb` (the exported room).
+- **Getting the room out of Blender:** `tools/export_to_godot.py` replaces the procedural materials with flat colours matching the photos, then exports the room and the exterior as glTF. Run it headless: `"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b room.blend --python tools/export_to_godot.py`. It does not save `room.blend`. Re-run it after every Blender change, then let Godot re-import.
+- **What is lost in the export:** the roughcast wall texture, the striped door, the speckled counter top and the facade windows. They are flat colours in Godot. Floor tiles are recreated by a Godot shader.
+- **Godot MCP:** [mkdevkit/godot-mcp](https://github.com/mkdevkit/godot-mcp) (server cloned outside this repo to `Desktop/repos/godot-mcp`, addon in `room-godot/addons/godot_mcp`). Register it with `claude mcp add godot-mcp --scope local --env GODOT_MCP_PORT=6505 -- node <path>/godot-mcp/server/build/index.js`, enable the plugin in Godot, and keep the editor open.
+- **MCP quirks found:** `execute_editor_script` is a single-expression evaluator (no statements) and needs an open scene. Game-side node paths must be relative to the scene root (`Player`), not `/root/Main/Player`. `simulate_key` sets `keycode` only, which is why `player.gd` checks both `is_key_pressed` and `is_physical_key_pressed`. If `/mcp` reconnect shows red, an old server copy is probably holding port 6505 (kill the stale node process).
+- **Test teleport:** do not drop the player inside the counter or a wall, or the physics pushes them out through the window.
 
 ## Notes for future sessions
 
