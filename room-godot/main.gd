@@ -29,6 +29,9 @@ const KILIM_TEXTURE := "res://assets/kilim.png"
 @onready var lights: Node3D = $ElectricLights
 
 var _shared: Dictionary = {}
+var _facade_mats: Array = []
+var _lighting := preload("res://lighting_modes.gd").new()
+var _mode_label: Label
 
 
 func _ready() -> void:
@@ -48,6 +51,27 @@ func _ready() -> void:
 	# Baked indirect light, produced by tools/bake_gi.gd. The room still looks fine without it.
 	if ResourceLoader.exists(GI_DATA):
 		$VoxelGI.data = load(GI_DATA)
+	# Lighting modes: 1 = day (as authored above), 2 = sunset, 3 = night. Captures the day look, so call it last.
+	_lighting.setup(self, _facade_mats)
+	_mode_label = Label.new()
+	_mode_label.position = Vector2(24, 18)
+	_mode_label.add_theme_font_size_override("font_size", 22)
+	_mode_label.modulate.a = 0.0
+	$Screen.add_child(_mode_label)
+
+
+## Used by tools/bake_gi.gd, which bakes one GI file per mode.
+func lighting() -> RefCounted:
+	return _lighting
+
+
+func _set_mode(m: String) -> void:
+	_lighting.apply(m)
+	_mode_label.text = _lighting.LABELS[m]
+	_mode_label.modulate.a = 1.0
+	var tw := create_tween()
+	tw.tween_interval(1.4)
+	tw.tween_property(_mode_label, "modulate:a", 0.0, 0.6)
 
 
 func _shader_mat(path: String, params: Dictionary) -> ShaderMaterial:
@@ -85,7 +109,8 @@ func _build_shared_materials() -> void:
 	_shared["Curtain"] = _shader_mat(satin, {"albedo": Color("4a3225"), "roughness": 0.95, "rough_var": 0.05, "sheen": 0.22, "weave": 0.3, "bump_strength": 0.0006, "specular": 0.15})
 	# Daybed: mattress ticking and the frame wood. The kilim is built in _build_kilim().
 	_shared["Mattress"] = _shader_mat(satin, {"albedo": Color("ddd7c9"), "roughness": 0.92, "rough_var": 0.05, "sheen": 0.18, "weave": 0.3, "bump_strength": 0.0004, "specular": 0.15})
-	_shared["BedFrameWood"] = _shader_mat(satin, {"albedo": Color("9c7a54"), "roughness": 0.55, "rough_var": 0.12, "clearcoat": 0.12})
+	_shared["ArmBoxOak"] = _shader_mat(satin, {"albedo": Color("c8975f"), "roughness": 0.55, "rough_var": 0.14, "clearcoat": 0.08, "bump_strength": 0.0004})
+	_shared["BedFrameWhite"] =_shader_mat(satin, {"albedo": Color("e6e4de"), "roughness": 0.45, "rough_var": 0.1, "clearcoat": 0.12})
 
 
 func _build_rug() -> void:
@@ -152,7 +177,7 @@ func _apply_materials(mesh_node: MeshInstance3D) -> void:
 
 func _facade_material(mesh_node: MeshInstance3D, cfg: Array) -> ShaderMaterial:
 	var box := mesh_node.global_transform * mesh_node.get_aabb()
-	return _shader_mat("res://shaders/facade.gdshader", {
+	var mat := _shader_mat("res://shaders/facade.gdshader", {
 		"wall_color": cfg[0],
 		"trim_color": cfg[1],
 		"pitch": cfg[2],
@@ -161,6 +186,8 @@ func _facade_material(mesh_node: MeshInstance3D, cfg: Array) -> ShaderMaterial:
 		"x_max": box.end.x,
 		"top_y": box.end.y,
 	})
+	_facade_mats.append(mat)  # the lighting modes light some windows at night
+	return mat
 
 
 func _skip_collision(node_name: String) -> bool:
@@ -171,5 +198,13 @@ func _skip_collision(node_name: String) -> bool:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_L:
-		lights.visible = not lights.visible
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_L:
+				lights.visible = not lights.visible
+			KEY_1:
+				_set_mode("day")
+			KEY_2:
+				_set_mode("sunset")
+			KEY_3:
+				_set_mode("night")

@@ -12,6 +12,14 @@ uniform float ground_h = 3.4;               // shopfront storey height
 uniform float x_min = -1000.0;
 uniform float x_max = 1000.0;
 uniform float top_y = 1000.0;
+uniform float night = 0.0;                  // 0 = day, 1 = night: at night some windows glow (set by lighting_modes.gd)
+uniform vec3 lit_color : source_color = vec3(1.0, 0.78, 0.45);
+
+float hash21(vec2 p) {
+	p = fract(p * vec2(123.34, 456.21));
+	p += dot(p, p + 45.32);
+	return fract(p.x * p.y);
+}
 
 varying vec3 wpos;
 varying vec3 wnorm;
@@ -26,6 +34,7 @@ void fragment() {
 	float rough = 0.85;
 	float metal = 0.0;
 	float spec = 0.5;
+	vec3 emit = vec3(0.0);
 
 	if (abs(wnorm.z) > 0.5) {
 		float y = wpos.y - y0;
@@ -45,7 +54,12 @@ void fragment() {
 		rough = mix(0.85, 0.05, win);
 		spec = mix(0.5, 1.0, win);
 		metal = win * 0.0;
+		// At night about a third of the windows are lit, chosen by a hash of the window's grid cell.
+		vec2 cell_id = ground ? vec2(floor((wpos.x - x_min - 1.0) / cell.x), -1.0) : floor(vec2(p.x / cell.x, p.y / cell.y));
+		float lit = step(0.66, hash21(cell_id + vec2(floor(wpos.x * 0.001), 7.0)));
+		emit = lit_color * (1.0 + 0.5 * hash21(cell_id + 3.0)) * lit * win * night;
 	}
+	EMISSION = emit;
 	ALBEDO = col;
 	ROUGHNESS = rough;
 	METALLIC = metal;

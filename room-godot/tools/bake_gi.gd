@@ -1,7 +1,9 @@
 extends SceneTree
-## Bakes the VoxelGI in main.tscn and saves it to res://lighting/voxel_gi.res.
+## Bakes the VoxelGI in main.tscn, once per lighting mode, and saves each to res://lighting/ (voxel_gi.res for day,
+## voxel_gi_sunset.res, voxel_gi_night.res). Every mode is baked with its own sun, sky and lights.
 ## Run windowed (not --headless) from the repo root:
 ##   Godot_v4.7.2-stable_win64_console.exe --path room-godot -s res://tools/bake_gi.gd
+## To bake only some modes, add them after "--":  ... -s res://tools/bake_gi.gd -- sunset night
 
 
 func _init() -> void:
@@ -10,16 +12,25 @@ func _init() -> void:
 	# Let _ready() run (materials, collision) and the frame settle before voxelising.
 	await process_frame
 	await process_frame
-	var gi: VoxelGI = main.get_node("VoxelGI")
-	gi.data = null
-	print("BAKE start")
-	gi.bake(main, false)
-	print("BAKE done, data: ", gi.data)
-	if gi.data == null:
-		printerr("BAKE failed: no data")
-		quit(1)
-		return
+	var lighting = main.lighting()
+	var modes: Array = Array(OS.get_cmdline_user_args())
+	if modes.is_empty():
+		modes = lighting.MODES.duplicate()
 	DirAccess.make_dir_recursive_absolute("res://lighting")
-	var err := ResourceSaver.save(gi.data, "res://lighting/voxel_gi.res")
-	print("SAVE result: ", err)
-	quit(0 if err == OK else 1)
+	var failed := false
+	for m in modes:
+		lighting.apply(m)
+		await process_frame
+		await process_frame
+		var gi: VoxelGI = main.get_node("VoxelGI")
+		gi.data = null
+		print("BAKE start: ", m)
+		gi.bake(main, false)
+		if gi.data == null:
+			printerr("BAKE failed: no data for ", m)
+			failed = true
+			continue
+		var err := ResourceSaver.save(gi.data, lighting.gi_path(m))
+		print("BAKE done: ", m, ", save result: ", err)
+		failed = failed or err != OK
+	quit(1 if failed else 0)
