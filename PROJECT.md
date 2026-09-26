@@ -15,7 +15,8 @@ A 3D model of my studio apartment (built as ~13 m², but the real floor tile tur
 | Walkable Godot version | Done: first-person walk-through in `room-godot/` with collision, custom surface shaders, baked GI, haze, bloom and vignette. See the Godot section below |
 | Floor (the real plan) | **Done, the book is closed.** Rolled dark-walnut wood-print vinyl sheet (muşamba) laid loose over the tile, now a 3 m wide roll of about 15 m². Modelled in Godot only. `room.blend` still has the old tile material. Nothing is bought yet. See "Real-life floor plan" |
 | Rug | Leaning toward a round 120 cm polypropylene sisal-look rug (ARTİSAN Concept TYANA), placed as a guess in Godot. Not bought. The upkeep filters are in `rug_spec_tags.txt` |
-| Furniture, decor, the new look | **Not started. This is the next phase ("the dream room")** |
+| Seating hero (daybed) | **In progress, on branch `seating-hero`.** Placement, use and the firming layer (a beige kilim) are decided. The bed is modelled without back support. See "Seating hero" below |
+| Other furniture, decor, the new look | **Not started. This is the next phase ("the dream room")** |
 
 ## Repository contents
 
@@ -24,10 +25,12 @@ A 3D model of my studio apartment (built as ~13 m², but the real floor tile tur
 | `PROJECT.md` | This file |
 | `room.blend` | The Blender model. `room.blend1` is Blender's automatic backup and is git-ignored |
 | `room-godot/` | The Godot 4.7 project: the walkable room, shaders, lighting and the Godot MCP addon |
-| `tools/` | Blender scripts: `add_room_detail.py` (adds detail to `room.blend`) and `export_to_godot.py` (exports to glTF for Godot) |
+| `tools/` | Blender scripts: `add_room_detail.py` (adds detail to `room.blend`), `add_daybed.py` (adds the daybed, `S_*` objects) and `export_to_godot.py` (exports to glTF for Godot) |
+| `SEATING_HERO.md` | The daybed: what was decided in the questionnaires, measurements and open questions |
 | `STYLE_ANALYSIS.md` | Style analysis of the 12 mood-board images: palette, materials, light, layout moves, design rules |
 | `ROOM_DIMENSIONS.md` | Old photo-derived dimension estimate. Superseded by the plan and the scale below |
 | `room_plan.png` | My hand-drawn plan, labelled in floor-tile units. Window side at the top |
+| `kilim-texture.png` | Photo of the chosen beige kilim's weave, used as its texture in Godot. Identical copy: `room-godot/assets/kilim.png` |
 | `new-rug.png` | Product photo of the round rug now in the Godot model (background already transparent). Cropped copy: `room-godot/assets/rug_round.png` |
 | `rug-model.webp` | Top-down photo of the earlier striped rug, no longer used. Cropped copy: `room-godot/assets/rug.png` |
 | `rug_spec_tags.txt` | Shop-filter checklist for choosing a rug, purged down to the tags that affect low maintenance |
@@ -264,6 +267,27 @@ A 3 m roll of this length is a heavy tube (probably 25 to 35 kg). Get it deliver
 - **Chair:** a desk chair with hard wheels scratches vinyl. Use soft wheels or a chair mat.
 - **Cleaning:** a damp mop with mild soap, and a vacuum on its hard-floor setting. No steam mop and no abrasive pads, because steam loosens the tape and lifts the edges.
 - **Darker floors show dust and crumbs more.** This is the price of the dark colour.
+
+## Seating hero (daybed), work in progress
+
+Branch `seating-hero`. The first piece of the dream room is a bed that works as the sofa during the day. It is being worked out in real life first (short questionnaires, answered by me in free text), before any modelling.
+
+The answers so far are distilled in [SEATING_HERO.md](SEATING_HERO.md).
+
+**Decided (2026-09-26):**
+
+1. **Placement:** against the left wall in the main room.
+2. **Use:** a daybed: a bed at night, the sofa during the day.
+
+**Known detail, not a design choice:** I keep my current mattress, 90 cm wide and 190 cm long. The bookshelf may also stay. The tile measurement (see Scale) does not change these real sizes, but the model is at the old 0.75 m scale, so the room around it is about 13% too roomy.
+
+**Also decided (2026-09-26):** the seat gets a flat-woven kilim over the mattress instead of a foam pad (the seat is already about 57 cm high). Alpina Home "Stella Jüt Hasır", beige, 110 x 190 cm, not bought yet. Details and reasons are in SEATING_HERO.md.
+
+**In the model:** `tools/add_daybed.py` adds the frame, mattress and kilim (objects `S_*`, at real size, against the left wall). The mattress and frame wood get their Godot look from `_shared["Mattress"]` and `["BedFrameWood"]` in `main.gd`. The kilim uses the real product photo, `kilim-texture.png` (repo root, copy in `room-godot/assets/kilim.png`), mapped once over the cloth (top and front face together) by `shaders/kilim.gdshader`; `_build_kilim()` in `main.gd` measures the `S_Kilim_*` meshes, so it follows the bed if it moves. Like the rug it is loaded as a raw image, so Godot warns it "will not work on export". The kilim's flat Blender colour (`#c3b1a6`) is the photo's average, because the GI bake reads it. To rebuild: run the script, then `export_to_godot.py`, re-import, re-bake the GI (see the Godot section). Not yet done: back support, the real frame's look, moving the rug off the bed.
+
+**Not decided (do not assume any of these):** back support, the frame's look, how the sofa change works day to day, what else goes in the room.
+
+**How we work:** many rounds of a 3-question questionnaire, each a plain artifact page with free-text answers. Each round's questions come only from the previous answers, and I decide where the rounds lead.
 
 ## Next steps: the dream room
 

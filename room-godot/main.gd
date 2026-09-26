@@ -22,6 +22,9 @@ const RUG_DIAMETER := 1.2
 const RUG_THICKNESS := 0.008
 const RUG_RING_PITCH := 0.007 # metres between the concentric ridges
 
+# The daybed's kilim: the product photo (kilim-texture.png at the repo root), mapped once over the cloth (top + front face).
+const KILIM_TEXTURE := "res://assets/kilim.png"
+
 @onready var room: Node3D = $Room
 @onready var lights: Node3D = $ElectricLights
 
@@ -31,6 +34,7 @@ var _shared: Dictionary = {}
 func _ready() -> void:
 	_build_shared_materials()
 	_build_rug()
+	_build_kilim()
 	for n in room.find_children("*", "MeshInstance3D", true, false):
 		var mesh_node := n as MeshInstance3D
 		_apply_materials(mesh_node)
@@ -79,6 +83,9 @@ func _build_shared_materials() -> void:
 	_shared["Frame"] = _shader_mat(satin, {"albedo": Color("26272a"), "roughness": 0.38, "rough_var": 0.08, "metallic": 0.55})
 	# Fabric
 	_shared["Curtain"] = _shader_mat(satin, {"albedo": Color("4a3225"), "roughness": 0.95, "rough_var": 0.05, "sheen": 0.22, "weave": 0.3, "bump_strength": 0.0006, "specular": 0.15})
+	# Daybed: mattress ticking and the frame wood. The kilim is built in _build_kilim().
+	_shared["Mattress"] = _shader_mat(satin, {"albedo": Color("ddd7c9"), "roughness": 0.92, "rough_var": 0.05, "sheen": 0.18, "weave": 0.3, "bump_strength": 0.0004, "specular": 0.15})
+	_shared["BedFrameWood"] = _shader_mat(satin, {"albedo": Color("9c7a54"), "roughness": 0.55, "rough_var": 0.12, "clearcoat": 0.12})
 
 
 func _build_rug() -> void:
@@ -105,6 +112,27 @@ func _build_rug() -> void:
 	rug.position = Vector3(RUG_CENTER.x, RUG_THICKNESS * 0.5, RUG_CENTER.y)
 	rug.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(rug)
+
+
+func _build_kilim() -> void:
+	var top := room.find_child("S_Kilim_Top", true, false) as MeshInstance3D
+	var front := room.find_child("S_Kilim_Front", true, false) as MeshInstance3D
+	if top == null or front == null or not FileAccess.file_exists(KILIM_TEXTURE):
+		return
+	# Measure the cloth so the photo follows the bed if it is moved in Blender.
+	var t := top.global_transform * top.get_aabb()
+	var f := front.global_transform * front.get_aabb()
+	var img := Image.load_from_file(KILIM_TEXTURE)  # raw image, so it gets mipmaps and needs no editor import
+	img.generate_mipmaps()
+	_shared["Kilim"] = _shader_mat("res://shaders/kilim.gdshader", {
+		"albedo_tex": ImageTexture.create_from_image(img),
+		"bed_x0": t.position.x,
+		"top_y": t.end.y,
+		"top_w": t.size.x,
+		"sheet_w": t.size.x + (t.end.y - f.position.y),
+		"z_min": t.position.z,
+		"bed_len": t.size.z,
+	})
 
 
 func _apply_materials(mesh_node: MeshInstance3D) -> void:
