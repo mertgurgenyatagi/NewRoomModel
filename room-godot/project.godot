@@ -23,6 +23,7 @@ MCPScreenshotBridge="*res://addons/godot_mcp/services/mcp_screenshot_bridge.gd"
 
 [display]
 
+window/size/mode=3
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 

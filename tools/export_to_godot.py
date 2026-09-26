@@ -5,7 +5,8 @@ def lin(h):
     return (f(r),f(g),f(b),1.0)
 # name: (hex, roughness, alpha)
 M={
- "Floor":("#c9c3b9",0.45,1),"Wall":("#a7a3a2",0.9,1),"Ceiling":("#c7c3bd",0.9,1),"Soffit":("#c7c3bd",0.9,1),
+ # Floor: average of the dark walnut vinyl print in shaders/vinyl_wood.gdshader; the GI bake reads this colour
+ "Floor":("#823f26",0.6,1),"Wall":("#a7a3a2",0.9,1),"Ceiling":("#c7c3bd",0.9,1),"Soffit":("#c7c3bd",0.9,1),
  "Door":("#151412",0.15,1),"Frame":("#1c1c1e",0.4,1),"Glass":("#cfe6ee",0.0,0.12),
  "CounterWhite":("#dcdcd6",0.35,1),"CounterTop":("#1b1b1c",0.25,1),"BlindSheer":("#e0d9cc",0.9,0.55),
  "DownlightRim":("#e8e8e2",0.4,1),"DownlightLens":("#fff2d0",0.4,1),

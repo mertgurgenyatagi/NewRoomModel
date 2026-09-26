@@ -14,6 +14,14 @@ const FACADES := {
 	"Fac_Pink": [Color("c98f78"), Color("e3b9a5"), Vector2(2.2, 3.0), Vector2(1.1, 1.8)],
 }
 
+# The rug: a round 120 cm braided-look rug (product photo in RUG_TEXTURE), centre on the floor in Godot X, Z, in metres.
+# It sits in the open floor in front of the counter. The earlier striped rectangle used assets/rug.png at 1.165 x 1.7 m.
+const RUG_TEXTURE := "res://assets/rug_round.png"
+const RUG_CENTER := Vector2(1.6, -4.05)
+const RUG_DIAMETER := 1.2
+const RUG_THICKNESS := 0.008
+const RUG_RING_PITCH := 0.007 # metres between the concentric ridges
+
 @onready var room: Node3D = $Room
 @onready var lights: Node3D = $ElectricLights
 
@@ -22,6 +30,7 @@ var _shared: Dictionary = {}
 
 func _ready() -> void:
 	_build_shared_materials()
+	_build_rug()
 	for n in room.find_children("*", "MeshInstance3D", true, false):
 		var mesh_node := n as MeshInstance3D
 		_apply_materials(mesh_node)
@@ -52,7 +61,8 @@ func _build_shared_materials() -> void:
 	_shared["Soffit"] = _shared["Ceiling"]
 	_shared["Door"] = _shader_mat("res://shaders/door.gdshader", {})
 	_shared["CounterTop"] = _shader_mat("res://shaders/counter_top.gdshader", {})
-	_shared["Floor"] = _shader_mat("res://floor_tiles.gdshader", {})
+	# Rolled oak-print vinyl laid over the old tile. The tile shader is kept in floor_tiles.gdshader for comparison.
+	_shared["Floor"] = _shader_mat("res://shaders/vinyl_wood.gdshader", {})
 
 	var satin := "res://shaders/satin.gdshader"
 	# Painted / enamelled / lacquered surfaces (colour, roughness, smudge variation, clearcoat)
@@ -69,6 +79,32 @@ func _build_shared_materials() -> void:
 	_shared["Frame"] = _shader_mat(satin, {"albedo": Color("26272a"), "roughness": 0.38, "rough_var": 0.08, "metallic": 0.55})
 	# Fabric
 	_shared["Curtain"] = _shader_mat(satin, {"albedo": Color("4a3225"), "roughness": 0.95, "rough_var": 0.05, "sheen": 0.22, "weave": 0.3, "bump_strength": 0.0006, "specular": 0.15})
+
+
+func _build_rug() -> void:
+	if not FileAccess.file_exists(RUG_TEXTURE):
+		return
+	# Loaded as a raw image so it gets mipmaps (no shimmer at a distance) and needs no editor import.
+	var img := Image.load_from_file(RUG_TEXTURE)
+	img.generate_mipmaps()
+	var disc := CylinderMesh.new()
+	disc.top_radius = RUG_DIAMETER * 0.5
+	disc.bottom_radius = RUG_DIAMETER * 0.5
+	disc.height = RUG_THICKNESS
+	disc.radial_segments = 96
+	disc.rings = 1
+	var rug := MeshInstance3D.new()
+	rug.name = "Rug"
+	rug.mesh = disc
+	rug.material_override = _shader_mat("res://shaders/rug.gdshader", {
+		"albedo_tex": ImageTexture.create_from_image(img),
+		"rug_center": RUG_CENTER,
+		"rug_size": Vector2(RUG_DIAMETER, RUG_DIAMETER),
+		"ring_pitch": RUG_RING_PITCH,
+	})
+	rug.position = Vector3(RUG_CENTER.x, RUG_THICKNESS * 0.5, RUG_CENTER.y)
+	rug.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(rug)
 
 
 func _apply_materials(mesh_node: MeshInstance3D) -> void:
