@@ -109,6 +109,9 @@ func _build_shared_materials() -> void:
 	_shared["Curtain"] = _shader_mat(satin, {"albedo": Color("4a3225"), "roughness": 0.95, "rough_var": 0.05, "sheen": 0.22, "weave": 0.3, "bump_strength": 0.0006, "specular": 0.15})
 	# Daybed: mattress ticking and the frame wood. The kilim is built in _build_kilim().
 	_shared["Mattress"] = _shader_mat(satin, {"albedo": Color("ddd7c9"), "roughness": 0.92, "rough_var": 0.05, "sheen": 0.18, "weave": 0.3, "bump_strength": 0.0004, "specular": 0.15})
+	# Back-support blocks (beige) and scatter pillows (sage): woven cloth
+	_shared["CushionBeige"] = _shader_mat("res://shaders/fabric.gdshader", {"albedo": Color("c0b198"), "roughness": 0.95, "sheen": 0.09, "slub": 0.08, "thread": 0.02})
+	_shared["CushionSage"] = _shader_mat("res://shaders/fabric.gdshader", {"albedo": Color("78876c"), "roughness": 0.95, "sheen": 0.12, "slub": 0.08, "thread": 0.02})
 	_shared["ArmBoxOak"] = _shader_mat(satin, {"albedo": Color("c8975f"), "roughness": 0.55, "rough_var": 0.14, "clearcoat": 0.08, "bump_strength": 0.0004})
 	_shared["BedFrameWhite"] =_shader_mat(satin, {"albedo": Color("e6e4de"), "roughness": 0.45, "rough_var": 0.1, "clearcoat": 0.12})
 

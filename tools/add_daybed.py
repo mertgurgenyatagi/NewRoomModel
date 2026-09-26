@@ -168,5 +168,179 @@ for n, (ya, yb) in enumerate([(Y0 - BOX_T, Y0), (Y1, Y1 + BOX_T)]):
             lid.modifiers.remove(m)
     bpy.data.objects.remove(cut, do_unlink=True)
 
+# ---- back support: two long firm foam cushions in sage covers (day position, against the wall) ----
+# Modelled as covered blocks, not boxes: a rounded body with the fabric puffed out on each face, faint wrinkles, and a welt
+# (piping cord) round the top and bottom seams. The foam is assumed perfect and the covers are the sage "kilif" of the plan.
+import math
+import random
+from mathutils import Vector, noise
+
+BACK_D, BACK_H = 0.40, 0.50                  # depth off the wall (leaves a 50 cm seat) and height above the seat
+BACK_GAP = 0.0125                            # gap between neighbouring blocks
+N_BACK = 2                                   # three near-cube blocks read as ottomans; two long ones read as a sofa back
+BACK_W = (MAT_L - (N_BACK - 1) * BACK_GAP) / N_BACK
+BACK_R = 0.035                               # corner radius of a covered block
+WELT_R = 0.0075                              # piping cord radius
+BEIGE = mat("CushionBeige", "#c0b198", 0.95)      # the back blocks: warm linen beige
+SAGE = mat("CushionSage", "#78876c", 0.95)        # the scatter pillows
+
+
+def smooth(o):
+    o.data.polygons.foreach_set("use_smooth", [True] * len(o.data.polygons))
+    o.data.update()
+
+
+def rounded_block(name, cx, cy, z0, sx, sy, sz, r, puff, seed, m):
+    """A rounded box, centred on (cx, cy) with its base at z0. puff = bulge of the fabric on (+x, -x, +y, -y, +z, -z)."""
+    hx, hy, hz = sx / 2, sy / 2, sz / 2
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0)
+    bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=26, use_grid_fill=True)
+    half = Vector((hx, hy, hz))
+    for v in bm.verts:
+        q = Vector((v.co.x * sx, v.co.y * sy, v.co.z * sz))     # on the box surface
+        # rounded box: pull each vertex onto a sphere of radius r around the clamped inner point
+        inner = Vector((max(-hx + r, min(hx - r, q.x)), max(-hy + r, min(hy - r, q.y)), max(-hz + r, min(hz - r, q.z))))
+        d = q - inner
+        p = inner + d.normalized() * r if d.length > 1e-9 else q
+        # fabric puff on each face, zero along the edges so the seams stay tight
+        for a, b_, c_ in ((0, 1, 2), (1, 0, 2), (2, 0, 1)):
+            if abs(abs(q[a]) - half[a]) < 1e-6:
+                s = 1 if q[a] > 0 else -1
+                k = puff[a * 2 + (0 if s > 0 else 1)]
+                p[a] += s * k * (1 - (q[b_] / half[b_]) ** 2) * (1 - (q[c_] / half[c_]) ** 2)
+        # fine pulled-fabric wrinkles only: tiny amplitude, small scale, a little stronger near the corners where the cover gathers.
+        # (Big slow noise here made the blocks look like jelly.)
+        n = d.normalized() if d.length > 1e-9 else Vector((0, 0, 0))
+        edge = 1 - min(1.0, min(half[0] - abs(q[0]), half[1] - abs(q[1]), half[2] - abs(q[2])) / 0.08)
+        w = noise.noise(Vector((p.x * 45 + seed, p.y * 45, p.z * 45)))
+        p += n * (w * (0.0006 + 0.0016 * edge))
+        v.co = Vector((p.x + cx, p.y + cy, p.z + z0 + hz))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    me = bpy.data.meshes.new("S_" + name)
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new("S_" + name, me)
+    ROOM.objects.link(o)
+    o.data.materials.append(m)
+    smooth(o)
+    return o
+
+
+def welt(name, cx, cy, zc, hx, hy, r, sign, m, seg=10, prof=8):
+    """Piping cord round a seam: a tube following the rounded rectangle at 45 degrees on the top (+1) or bottom (-1) edge."""
+    c45 = math.cos(math.radians(45))
+    ix, iy = hx - r, hy - r
+    pts = []
+    for (ox, oy, a0) in ((ix, iy, 0), (-ix, iy, 90), (-ix, -iy, 180), (ix, -iy, 270)):
+        for k in range(seg + 1):
+            a = math.radians(a0 + 90 * k / seg)
+            pts.append(Vector((ox + r * c45 * math.cos(a), oy + r * c45 * math.sin(a), sign * (zc + r * c45))))
+    bm = bmesh.new()
+    rings = []
+    n = len(pts)
+    for i, p in enumerate(pts):
+        t = (pts[(i + 1) % n] - pts[i - 1]).normalized()
+        up = Vector((0, 0, 1))
+        s_ = t.cross(up).normalized()
+        u_ = s_.cross(t).normalized()
+        ring = []
+        for j in range(prof):
+            ang = 2 * math.pi * j / prof
+            ring.append(bm.verts.new(p + s_ * (WELT_R * math.cos(ang)) + u_ * (WELT_R * math.sin(ang))))
+        rings.append(ring)
+    for i in range(n):
+        a, b = rings[i], rings[(i + 1) % n]
+        for j in range(prof):
+            bm.faces.new((a[j], a[(j + 1) % prof], b[(j + 1) % prof], b[j]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    me = bpy.data.meshes.new("S_" + name)
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new("S_" + name, me)
+    o.location = (cx, cy, 0)
+    ROOM.objects.link(o)
+    o.data.materials.append(m)
+    smooth(o)
+    return o
+
+
+z_seat = Z_MAT1 + KILIM_T
+for i in range(N_BACK):
+    cy = Y0 + BACK_W / 2 + i * (BACK_W + BACK_GAP)
+    cx = X0 + BACK_D / 2
+    # puff order: +x (the visible front), -x (against the wall), +y, -y, +z, -z. The end faces are squeezed by the neighbour.
+    rounded_block(f"Back{i}_Body", cx, cy, z_seat, BACK_D, BACK_W, BACK_H, BACK_R,
+                  (0.008, 0.002, 0.004, 0.004, 0.007, 0.0), 11.0 + i * 7.3, BEIGE)
+    # the welts sit on the 45 degree line of the top and bottom edge, measured from the block's middle height
+    for nm, sg in (("WeltTop", 1), ("WeltBot", -1)):
+        w = welt(f"Back{i}_{nm}", cx, cy, BACK_H / 2 - BACK_R, BACK_D / 2, BACK_W / 2, BACK_R, sg, BEIGE)
+        w.location.z = z_seat + BACK_H / 2
+
+
+# ---- three sage scatter pillows, leaning in different places ----
+from mathutils import Quaternion
+
+
+def pillow(name, size, thick, facing, tilt_deg, roll_deg, seed, m, pin):
+    """A square scatter pillow: a lens-shaped body with a thin seam round the edge and pinched corners (the 'ears').
+    facing = horizontal direction its face points; tilt_deg = how far the face tips up (0 = standing, 90 = lying).
+    pin = {"minx"|"maxx"|"miny"|"maxy": value, ...} pushes the finished pillow against a surface; it always rests on the seat."""
+    hs = size / 2
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0)
+    bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=22, use_grid_fill=True)
+    pts = []
+    for v in bm.verts:
+        u, w_, k = v.co.x * 2, v.co.y * 2, v.co.z * 2        # each in -1 .. 1
+        t = (max(0.0, 1 - u * u) ** 0.5) * (max(0.0, 1 - w_ * w_) ** 0.5)
+        t = t ** 0.75
+        z = k * (thick / 2 * t + 0.005)
+        # stuffing pulls the edges in more at the middle of each side than at the corners, so the corners stick out
+        sx = 1 - 0.09 * (max(0.0, 1 - w_ * w_) ** 0.5) * (max(0.0, 1 - u * u) ** 0.35)
+        sy = 1 - 0.09 * (max(0.0, 1 - u * u) ** 0.5) * (max(0.0, 1 - w_ * w_) ** 0.35)
+        x, y = u * hs * sx, w_ * hs * sy
+        # a soft crease from each corner toward the middle, and a little fabric noise
+        corner = (abs(u) * abs(w_)) ** 3
+        z += k * 0.006 * corner * math.sin(9 * (abs(u) - abs(w_)) + seed)
+        z += k * noise.noise(Vector((x * 22 + seed, y * 22, 0.0))) * 0.0035 * t
+        pts.append((v, Vector((x, y, z))))
+    for v, pos in pts:
+        v.co = pos
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    fx, fy = facing
+    a = math.radians(tilt_deg)
+    nrm = Vector((fx * math.cos(a), fy * math.cos(a), math.sin(a))).normalized()
+    rot = nrm.to_track_quat('Z', 'Y') @ Quaternion(Vector((0, 0, 1)), math.radians(roll_deg))
+    for v in bm.verts:
+        v.co = rot @ v.co
+    lo = Vector((min(v.co.x for v in bm.verts), min(v.co.y for v in bm.verts), min(v.co.z for v in bm.verts)))
+    hi = Vector((max(v.co.x for v in bm.verts), max(v.co.y for v in bm.verts), max(v.co.z for v in bm.verts)))
+    dx = dy = 0.0
+    if "minx" in pin: dx = pin["minx"] - lo.x
+    if "maxx" in pin: dx = pin["maxx"] - hi.x
+    if "miny" in pin: dy = pin["miny"] - lo.y
+    if "maxy" in pin: dy = pin["maxy"] - hi.y
+    dz = z_seat + 0.004 - lo.z
+    if "cx" in pin: dx = pin["cx"] - (lo.x + hi.x) / 2
+    if "cy" in pin: dy = pin["cy"] - (lo.y + hi.y) / 2
+    for v in bm.verts:
+        v.co += Vector((dx, dy, dz))
+    me = bpy.data.meshes.new("S_" + name)
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new("S_" + name, me)
+    ROOM.objects.link(o)
+    o.data.materials.append(m)
+    smooth(o)
+    return o
+
+
+x_face = X0 + BACK_D + 0.010                 # front of the back blocks, with their puff
+# one against the near arm box, one on the back blocks over the middle, one against the far arm box
+pillow("Pillow0", 0.42, 0.13, (0, 1), 12, 6, 3.0, SAGE, {"miny": Y0 + 0.020, "cx": 0.66})
+pillow("Pillow1", 0.46, 0.14, (1, 0), 22, -14, 8.0, SAGE, {"minx": x_face, "cy": Y_CENTRE - 0.20})
+pillow("Pillow2", 0.40, 0.12, (0, -1), 16, -5, 14.0, SAGE, {"maxy": Y1 - 0.020, "cx": 0.66})
+
 bpy.ops.wm.save_mainfile()
 print("DAYBED_DONE", len([o for o in bpy.data.objects if o.name.startswith("S_")]))
