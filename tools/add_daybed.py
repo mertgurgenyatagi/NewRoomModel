@@ -30,17 +30,21 @@ LEG = 0.035                                  # black metal leg, square; it runs 
 X0 = 0.02                                    # back of the bed: left wall (X 0) plus its 1.2 cm skirting
 Y_CENTRE = 3.525                             # middle of the main room (Y 1.8 to 5.25)
 KILIM_T = 0.008                              # kilim thickness (thin flat weave, under 6 mm pile)
-# The arm rests: two identical oak boxes, one at each end of the bed, outside the mattress and standing on the floor.
-# 90 cm wide like the bed, so they hide the frame boards and the mattress ends. Recessed plinth, box-joint corners,
-# a lift-off lid with a rounded edge and a finger notch (no handle). Hollow inside, for a pillow and blankets.
+# The arm rests: two identical boxes, one at each end of the bed, outside the mattress and standing on the floor. 90 cm
+# wide like the bed, so they hide the frame boards and the mattress ends. Hollow inside, for a pillow and blankets.
+# 2026-09-27: covered in a fitted beige bouclé slipcover (see PROJECT.md, decision 27) instead of bare oak. Only the
+# recessed plinth stays bare wood, like furniture feet peeking out under a loose cover; the body, corners and lid are the
+# fabric. A raised band at the lid line stands in for the slipcover's zip seam.
 BOX_T, BOX_H = 0.30, 0.70                    # depth along the wall, height from the floor (arm top is 13 cm above the seat)
-BOX_WALL, BOX_LID = 0.018, 0.025             # wall and lid thickness
+BOX_WALL, BOX_LID = 0.018, 0.025             # wall and lid thickness (the "wood" underneath the cover)
 PLINTH_H, PLINTH_IN = 0.05, 0.03             # recessed base: height, how far it sits back from the box
 LID_OV = 0.010                               # lid overhang on every side
-FINGER = 0.08                                # height of one box-joint finger
-STAG = 0.0015                                # how far alternate fingers stand proud, so the joint reads
-# The kilim is 110 x 190 cm: it runs the full length and covers the top and the whole front face.
-# Top 0.90 + front drop 0.17 = 1.07, so about 3 cm is left to tuck under.
+BAND_OV, BAND_H = 0.006, 0.010               # the seam band at the lid line: how far it stands proud, its height
+# The kilim runs the full length and covers the top and the whole front face, all the way down to the top of the legs
+# (2026-09-27: extended from just the mattress edge so the white frame board never shows).
+# Top 0.90 + front drop 0.39 (mattress 0.17 + board 0.22) = 1.29 m needed across the roll's width.
+# The 110 x 190 cm kilim picked earlier (see PROJECT.md, SHOPPING_LIST.md) is 19 cm short of that: it will cover the top and
+# most of the front, but not reach the legs. Either size up the kilim or dress the board separately; not decided.
 
 Y0, Y1 = Y_CENTRE - MAT_L / 2, Y_CENTRE + MAT_L / 2
 X1 = X0 + MAT_W
@@ -107,18 +111,17 @@ for i, (lx, ly) in enumerate([(X0 + T, Y0 + T), (X1 - T - LEG, Y0 + T), (X0 + T,
 # ---- mattress, softly rounded ------------------------------------------
 box("Bed_Mattress", X0, X1, Y0, Y1, Z_MAT0, Z_MAT1, MATTRESS, 0.03, 3)
 
-# ---- kilim: over the top and down the whole front face -----------------
+# ---- kilim: over the top, and down the front all the way to the top of the legs, so the white board never shows --------
 t = KILIM_T
 box("Kilim_Top", X0, X1, Y0, Y1, Z_MAT1, Z_MAT1 + t, KILIM, 0.003)
-box("Kilim_Front", X1, X1 + t, Y0, Y1, Z_MAT0, Z_MAT1 + t, KILIM, 0.003)
+box("Kilim_Front", X1, X1 + t, Y0, Y1, zp0, Z_MAT1 + t, KILIM, 0.003)
 
-# ---- arm rests: two identical oak boxes ----------------------------------
-OAK = mat("ArmBoxOak", "#c8975f", 0.55)
+# ---- arm rests: two identical boxes, fabric-covered body and lid, bare oak plinth ----
+OAK = mat("ArmBoxOak", "#c8975f", 0.55)            # the plinth only: a sliver of real wood peeking out at the floor
+FABRIC = mat("ArmBoxFabric", "#c9bda0", 0.9)       # the slipcover: beige bouclé, flat colour here (see shaders/fabric.gdshader)
 W = BOX_WALL
 z_body0 = PLINTH_H + W                       # top of the floor plate
 z_lid0 = BOX_H - BOX_LID                     # underside of the lid
-n_fing = max(1, round((z_lid0 - z_body0) / FINGER))
-h_fing = (z_lid0 - z_body0) / n_fing
 
 
 def apply_modifiers(obj):
@@ -130,25 +133,20 @@ def apply_modifiers(obj):
 for n, (ya, yb) in enumerate([(Y0 - BOX_T, Y0), (Y1, Y1 + BOX_T)]):
     b = f"ArmBox{n}"
     box(f"{b}_Plinth", X0 + PLINTH_IN, X1 - PLINTH_IN, ya + PLINTH_IN, yb - PLINTH_IN, 0.0, PLINTH_H, OAK, 0.003)
-    box(f"{b}_Floor", X0, X1, ya, yb, PLINTH_H, z_body0, OAK, 0.004)
-    # four walls between the corner columns
-    box(f"{b}_Wall_Back", X0, X0 + W, ya + W, yb - W, z_body0, z_lid0, OAK, 0.004)
-    box(f"{b}_Wall_Front", X1 - W, X1, ya + W, yb - W, z_body0, z_lid0, OAK, 0.004)
-    box(f"{b}_Wall_End0", X0 + W, X1 - W, ya, ya + W, z_body0, z_lid0, OAK, 0.004)
-    box(f"{b}_Wall_End1", X0 + W, X1 - W, yb - W, yb, z_body0, z_lid0, OAK, 0.004)
-    # corner columns built from alternating fingers (box joints): even fingers stand proud on the long faces,
-    # odd fingers on the end faces
+    box(f"{b}_Floor", X0, X1, ya, yb, PLINTH_H, z_body0, OAK, 0.004)     # hidden inside the box; material doesn't matter
+    # four walls, softly rounded at their edges like a padded surface, not a sharp wooden crate
+    box(f"{b}_Wall_Back", X0, X0 + W, ya + W, yb - W, z_body0, z_lid0, FABRIC, 0.006)
+    box(f"{b}_Wall_Front", X1 - W, X1, ya + W, yb - W, z_body0, z_lid0, FABRIC, 0.006)
+    box(f"{b}_Wall_End0", X0 + W, X1 - W, ya, ya + W, z_body0, z_lid0, FABRIC, 0.006)
+    box(f"{b}_Wall_End1", X0 + W, X1 - W, yb - W, yb, z_body0, z_lid0, FABRIC, 0.006)
+    # plain corner columns (the wood box-joint is gone: it would never show under a fabric cover)
     for ci, (cx, cy) in enumerate([(X0, ya), (X1 - W, ya), (X0, yb - W), (X1 - W, yb - W)]):
-        for k in range(n_fing):
-            za, zb = z_body0 + k * h_fing, z_body0 + (k + 1) * h_fing
-            x0, x1, y0, y1 = cx, cx + W, cy, cy + W
-            if k % 2 == 0:
-                x0, x1 = (x0 - STAG, x1) if cx == X0 else (x0, x1 + STAG)
-            else:
-                y0, y1 = (y0 - STAG, y1) if cy == ya else (y0, y1 + STAG)
-            box(f"{b}_Joint{ci}_{k}", x0, x1, y0, y1, za, zb, OAK, 0.003)
-    # lid, with a half-round finger notch cut into the edge that faces the room
-    lid = box(f"{b}_Lid", X0 - LID_OV, X1 + LID_OV, ya - LID_OV, yb + LID_OV, z_lid0, BOX_H, OAK, 0.010, 4)
+        box(f"{b}_Corner{ci}", cx, cx + W, cy, cy + W, z_body0, z_lid0, FABRIC, 0.006)
+    # a raised band right at the lid line, standing for the slipcover's zip seam
+    box(f"{b}_SeamBand", X0 - BAND_OV, X1 + BAND_OV, ya - BAND_OV, yb + BAND_OV,
+        z_lid0 - BAND_H / 2, z_lid0 + BAND_H / 2, FABRIC, 0.004, 3)
+    # lid, generously rounded (a cushioned top, not a wooden lid), with a half-round finger notch to lift it (no handle)
+    lid = box(f"{b}_Lid", X0 - LID_OV, X1 + LID_OV, ya - LID_OV, yb + LID_OV, z_lid0, BOX_H, FABRIC, 0.014, 4)
     cbm = bmesh.new()
     bmesh.ops.create_cone(cbm, cap_ends=True, segments=24, radius1=0.024, radius2=0.024, depth=BOX_LID + 0.02)
     cme = bpy.data.meshes.new("S_" + b + "_Cutter")
