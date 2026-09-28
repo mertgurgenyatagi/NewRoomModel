@@ -1,6 +1,10 @@
 extends Node3D
-## Builds collision for the imported room, replaces the flat glTF colours with world-position shaders
-## (plaster, striped door, speckled worktop, facades, floor tiles) and wires up the electric lights (toggle with L).
+## Builds collision for the imported room and replaces the flat glTF colours with world-position shaders
+## (plaster, striped door, speckled worktop, facades, floor tiles).
+## Lighting (2026-09-27): two modes, switched with keys 1 (day) and 2 (night), rebuilt from scratch after
+## the old day/sunset/night system was stripped out. Day is a midday look (~47 degree sun through the
+## window, cool sky fill); night is dark outside with only the three ceiling downlights on. See lighting_modes.gd
+## and PROJECT.md.
 
 const GI_DATA := "res://lighting/voxel_gi.res"
 const NO_COLLISION_PREFIXES := ["Far_", "Opp_", "Street_", "Ground_", "Window_Glass", "Blind_", "D_Tree", "D_Lamp", "D_Car", "D_Curtain"]
@@ -36,6 +40,7 @@ const WALLPAPERS := [
 	["b", Vector2(0.8, 1.422)],
 	["c", Vector2(0.85, 1.702)],
 ]
+const WALLPAPER_DEFAULT := 1  # "b" is the default look, not "none"
 
 @onready var room: Node3D = $Room
 @onready var lights: Node3D = $ElectricLights
@@ -43,12 +48,13 @@ const WALLPAPERS := [
 var _shared: Dictionary = {}
 var _facade_mats: Array = []
 var _lighting := preload("res://lighting_modes.gd").new()
+var _light_tuner: CanvasLayer
 var _mode_label: Label
 var _wall_accent_surfaces: Array = []   # [mesh node, surface index] of WALLPAPER_ACCENT_WALL's surfaces
 var _wall_other_surfaces: Array = []    # every other wall surface
 var _wallpaper_mats: Array = []         # one accent-wall material per WALLPAPERS entry
 var _wallpaper_plain: Material          # the flat beige used on every other wall once a wallpaper is picked
-var _wallpaper := -1                    # -1 = none (all walls plain plaster), otherwise an index into WALLPAPERS
+var _wallpaper := WALLPAPER_DEFAULT     # -1 = none (all walls plain plaster), otherwise an index into WALLPAPERS
 
 
 func _ready() -> void:
@@ -63,19 +69,27 @@ func _ready() -> void:
 			mesh_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # transparent, must not block the sun
 		if not _skip_collision(mesh_node.name):
 			mesh_node.create_trimesh_collision()
-	lights.visible = false
-	# Late-afternoon sun about 33 degrees up, coming in from the window side (the window faces west-southwest, toward -Z).
-	$Sun.look_at_from_position(Vector3(2.0, 13.0, -20.0), Vector3.ZERO)
+	_apply_wallpaper(false)
+	# Midday sun, coming in through the window side (the window faces west-southwest, toward -Z).
+	# About 47 degrees up, versus the old late-afternoon look's 33 degrees. A first pass put this at 63
+	# degrees (near-overhead) and it read as "Lahaina Noon" - the tropical solar-noon effect where vertical
+	# surfaces (pillows, cushion faces) cast almost no shadow against their neighbours and everything looks
+	# flat and uncanny. Pulled back down to an angle that still reads as midday but keeps real shadow modelling.
+	$Sun.look_at_from_position(Vector3(1.6, 19.0, -18.0), Vector3.ZERO)
 	# Baked indirect light, produced by tools/bake_gi.gd. The room still looks fine without it.
 	if ResourceLoader.exists(GI_DATA):
 		$VoxelGI.data = load(GI_DATA)
-	# Lighting modes: 1 = day (as authored above), 2 = sunset, 3 = night. Captures the day look, so call it last.
-	_lighting.setup(self, _facade_mats)
 	_mode_label = Label.new()
 	_mode_label.position = Vector2(24, 18)
 	_mode_label.add_theme_font_size_override("font_size", 22)
 	_mode_label.modulate.a = 0.0
 	$Screen.add_child(_mode_label)
+	# Lighting modes: 1 = day (as authored above), 2 = night. Captures the day look, so call it last.
+	_lighting.setup(self, _facade_mats)
+	# Live tuning panel for the downlights (F1 to toggle) - drag sliders instead of round-tripping edits.
+	_light_tuner = preload("res://tools/light_tuner.gd").new()
+	$Screen.add_child(_light_tuner)
+	_light_tuner.setup(lights.get_children())
 
 
 ## Used by tools/bake_gi.gd, which bakes one GI file per mode.
@@ -86,11 +100,17 @@ func lighting() -> RefCounted:
 func _set_mode(m: String) -> void:
 	_lighting.apply(m)
 	_flash_label(_lighting.LABELS[m])
+	# Let a handful of ordinary frames pass before the (expensive, 6-face) reflection-probe re-bake, so any
+	# pipeline still compiling from the light/material changes above isn't forced to do so 6 times over in
+	# the same frame - see _warm_up_downlight_shadows() for why that combination crashed the GPU outright.
+	for i in 6:
+		await get_tree().process_frame
 	_refresh_reflection_probe()
 
 
-## The reflection probe only bakes once (GPU cost, see PROJECT.md), so nudge it to re-bake after anything that actually
-## changes what it should be reflecting. One extra probe render, not a per-frame cost.
+## The reflection probe only bakes once (GPU cost, see PROJECT.md), so nudge it to re-bake after anything that
+## actually changes what it should be reflecting (currently the wallpaper and the lighting mode). One extra
+## probe render, not a per-frame cost.
 func _refresh_reflection_probe() -> void:
 	var rp := $ReflectionProbe as ReflectionProbe
 	rp.update_mode = ReflectionProbe.UPDATE_ALWAYS
@@ -107,19 +127,24 @@ func _flash_label(text: String) -> void:
 
 
 ## Key 0: none -> a -> b -> c -> none. "None" puts every wall back to the plain plaster; a/b/c paper the accent wall and
-## turn every other wall a flat beige.
+## turn every other wall a flat beige. The default on load is "b" (WALLPAPER_DEFAULT), not "none".
 func _cycle_wallpaper() -> void:
 	_wallpaper += 1
 	if _wallpaper >= _wallpaper_mats.size():
 		_wallpaper = -1
+	_apply_wallpaper(true)
+
+
+func _apply_wallpaper(announce: bool) -> void:
 	var accent: Material = _shared["Wall"] if _wallpaper < 0 else _wallpaper_mats[_wallpaper]
 	var other: Material = _shared["Wall"] if _wallpaper < 0 else _wallpaper_plain
 	for w in _wall_accent_surfaces:
 		(w[0] as MeshInstance3D).set_surface_override_material(w[1], accent)
 	for w in _wall_other_surfaces:
 		(w[0] as MeshInstance3D).set_surface_override_material(w[1], other)
-	_flash_label("Wallpaper: none" if _wallpaper < 0 else "Wallpaper: " + String(WALLPAPERS[_wallpaper][0]))
-	_refresh_reflection_probe()
+	if announce:
+		_flash_label("Wallpaper: none" if _wallpaper < 0 else "Wallpaper: " + String(WALLPAPERS[_wallpaper][0]))
+		_refresh_reflection_probe()
 
 
 func _build_wallpapers() -> void:
@@ -262,7 +287,7 @@ func _facade_material(mesh_node: MeshInstance3D, cfg: Array) -> ShaderMaterial:
 		"x_max": box.end.x,
 		"top_y": box.end.y,
 	})
-	_facade_mats.append(mat)  # the lighting modes light some windows at night
+	_facade_mats.append(mat)  # kept for whenever a night look (lit windows across the street) is redone
 	return mat
 
 
@@ -276,13 +301,17 @@ func _skip_collision(node_name: String) -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
-			KEY_L:
-				lights.visible = not lights.visible
 			KEY_1:
 				_set_mode("day")
 			KEY_2:
-				_set_mode("sunset")
-			KEY_3:
 				_set_mode("night")
 			KEY_0:
 				_cycle_wallpaper()
+			KEY_F1:
+				_light_tuner.visible = not _light_tuner.visible
+				if _light_tuner.visible:
+					lights.visible = true  # so tuning is visible regardless of day/night mode
+					Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+				else:
+					lights.visible = _lighting.mode == "night"  # back to whatever the current mode says
+					Input.mouse_mode = Input.MOUSE_MODE_CAPTURED

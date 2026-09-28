@@ -1,15 +1,14 @@
 extends SceneTree
-## Bakes the VoxelGI in main.tscn, once per lighting mode, and saves each to res://lighting/ (voxel_gi.res for day,
-## voxel_gi_sunset.res, voxel_gi_night.res). Every mode is baked with its own sun, sky and lights.
-## Run windowed (not --headless) from the repo root:
+## Bakes the VoxelGI in main.tscn, once per lighting mode, and saves each to res://lighting/ (voxel_gi.res for
+## day, voxel_gi_night.res for night). Run windowed (not --headless) from the repo root:
 ##   Godot_v4.7.2-stable_win64_console.exe --path room-godot -s res://tools/bake_gi.gd
-## To bake only some modes, add them after "--":  ... -s res://tools/bake_gi.gd -- sunset night
+## To bake only one mode, add it after "--":  ... -s res://tools/bake_gi.gd -- night
 
 
 func _init() -> void:
 	var main: Node = load("res://main.tscn").instantiate()
 	root.add_child(main)
-	# Let _ready() run (materials, collision) and the frame settle before voxelising.
+	# Let _ready() run (materials, collision, sun placement) and the frame settle before voxelising.
 	await process_frame
 	await process_frame
 	var lighting = main.lighting()
